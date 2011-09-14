@@ -1,0 +1,3 @@
+[submodule "deps/jimtcl"]
+	path = deps/jimtcl
+	url = git://github.com/msteveb/jimtcl
