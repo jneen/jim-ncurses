@@ -91,19 +91,21 @@ JimNCursesCommand_window(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
 
 // ncurses.init
 static int
-JimNCursesCommand_init(Jim_Interp *interp, int argc, Jim_Obj *const argv) {
+JimNCursesCommand_init(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
   initscr();
   return JIM_OK;
 }
 
+// ncurses.refresh
 static int
-JimNCursesCommand_refresh(Jim_Interp *interp, int argc, Jim_Obj *const argv) {
+JimNCursesCommand_refresh(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
   refresh();
   return JIM_OK;
 }
 
+// ncurses.end
 static int
-JimNCursesCommand_end(Jim_Interp *interp, int argc, Jim_Obj *const argv) {
+JimNCursesCommand_end(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
   endwin();
   return JIM_OK;
 }
