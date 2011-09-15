@@ -110,6 +110,14 @@ JimNCursesCommand_end(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
   return JIM_OK;
 }
 
+// ncurses.getc
+static int
+JimNCursesCommand_getc(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
+  char ch = getch();
+  Jim_SetResultString(interp, &ch, 1);
+  return JIM_OK;
+}
+
 /**
  * package initializer, run by Jim at load time
  */
@@ -125,6 +133,7 @@ Jim_ncursesInit(Jim_Interp *interp) {
   Jim_CreateCommand(interp, "ncurses.init", JimNCursesCommand_init, NULL, NULL);
   Jim_CreateCommand(interp, "ncurses.end", JimNCursesCommand_end, NULL, NULL);
   Jim_CreateCommand(interp, "ncurses.refresh", JimNCursesCommand_refresh, NULL, NULL);
+  Jim_CreateCommand(interp, "ncurses.getc", JimNCursesCommand_getc, NULL, NULL);
 
 	return JIM_OK;
 }
