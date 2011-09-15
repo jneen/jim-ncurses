@@ -11,12 +11,16 @@ JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
   // the ghetto-fabulous command table
   int option;
   static const char * const options[] = {
+    "refresh",
     "puts",
+    "box",
     NULL
   };
 
   enum {
-    OPT_PUTS
+    OPT_REFRESH,
+    OPT_PUTS,
+    OPT_BOX
   };
 
   // figure out which method was called, and pass through the error
@@ -33,18 +37,28 @@ JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
   WINDOW *win = Jim_CmdPrivData(interp);
 
   switch(option) {
-    case OPT_PUTS:
-      if (argc < 2) {
-        Jim_WrongNumArgs(interp, argc, argv, "puts string");
-        return JIM_ERR;
-      }
+  case OPT_REFRESH:
+    wrefresh(win);
+    break;
 
-      waddstr(win, Jim_String(argv[1]));
-      Jim_SetResult(interp, argv[1]);
-      return JIM_OK;
+  case OPT_PUTS:
+    if (argc < 2) {
+      Jim_WrongNumArgs(interp, argc, argv, "puts string");
+      return JIM_ERR;
+    }
+
+    waddstr(win, Jim_String(argv[1]));
+    wrefresh(win);
+    Jim_SetResult(interp, argv[1]);
+    break;
+
+  case OPT_BOX:
+    // TODO: parse arguments and send interesting things to box()
+    box(win, 0, 0);
+    break;
   }
 
-	return JIM_ERR;
+	return JIM_OK;
 }
 
 static void
