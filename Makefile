@@ -18,4 +18,4 @@ clean:
 	rm $(OBJ)
 
 test: all
-	./test/basic.test.tcl
+	./deps/jimtcl/jimsh ./test/basic.test.tcl
