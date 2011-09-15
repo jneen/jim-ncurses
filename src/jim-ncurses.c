@@ -71,6 +71,11 @@ JimNCurses_CreateWindow(Jim_Interp *interp, WINDOW *win, char *win_name) {
   return Jim_NewStringObj(interp, win_name, -1);
 }
 
+/***
+ * core ncurses commands
+ */
+
+// ncurses.window
 static int
 JimNCursesCommand_window(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
   if (argc < 5) {
@@ -84,6 +89,28 @@ JimNCursesCommand_window(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
   return JIM_OK;
 }
 
+// ncurses.init
+static int
+JimNCursesCommand_init(Jim_Interp *interp, int argc, Jim_Obj *const argv) {
+  initscr();
+  return JIM_OK;
+}
+
+static int
+JimNCursesCommand_refresh(Jim_Interp *interp, int argc, Jim_Obj *const argv) {
+  refresh();
+  return JIM_OK;
+}
+
+static int
+JimNCursesCommand_end(Jim_Interp *interp, int argc, Jim_Obj *const argv) {
+  endwin();
+  return JIM_OK;
+}
+
+/**
+ * package initializer, run by Jim at load time
+ */
 int
 Jim_ncursesInit(Jim_Interp *interp) {
   if (Jim_PackageProvide(interp, "ncurses", "0.1", JIM_ERRMSG)) {
@@ -91,7 +118,11 @@ Jim_ncursesInit(Jim_Interp *interp) {
   }
 
   JimNCurses_CreateWindow(interp, stdscr, "ncurses.stdscr");
+
   Jim_CreateCommand(interp, "ncurses.window", JimNCursesCommand_window, NULL, NULL);
+  Jim_CreateCommand(interp, "ncurses.init", JimNCursesCommand_init, NULL, NULL);
+  Jim_CreateCommand(interp, "ncurses.end", JimNCursesCommand_end, NULL, NULL);
+  Jim_CreateCommand(interp, "ncurses.refresh", JimNCursesCommand_refresh, NULL, NULL);
 
 	return JIM_OK;
 }
