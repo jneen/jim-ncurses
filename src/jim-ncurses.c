@@ -56,13 +56,9 @@ Jim_Obj *
 JimNCurses_CreateWindow(Jim_Interp *interp, WINDOW *win, char *win_name) {
   char name[60];
   if (win_name == NULL) {
-puts("win_name is NULL.");
-printf("sizeof(win_name): %ld\n", sizeof(win_name));
     win_name = name;
     snprintf(win_name, 1+60*sizeof(win_name), "ncurses.window<%ld>", Jim_GetId(interp));
   }
-
-printf("CreateWindow -- win_name: [%s]\n", win_name);
 
   Jim_CreateCommand(
     interp,
