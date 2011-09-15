@@ -57,7 +57,7 @@ JimNCurses_CreateWindow(Jim_Interp *interp, WINDOW *win, char *win_name) {
   char name[60];
   if (win_name == NULL) {
     win_name = name;
-    snprintf(win_name, 1+60*sizeof(win_name), "ncurses.window<%ld>", Jim_GetId(interp));
+    snprintf(win_name, sizeof(win_name), "ncurses.window<%ld>", Jim_GetId(interp));
   }
 
   Jim_CreateCommand(
