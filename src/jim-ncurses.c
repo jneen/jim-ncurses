@@ -1,6 +1,9 @@
 #include <ncursesw/curses.h>
 #include <jim.h>
 
+Jim_Obj *
+JimNCurses_CreateWindow(Jim_Interp *interp, WINDOW *win, char *win_name);
+
 static int
 JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
   // return an error if no method is specified
@@ -14,13 +17,15 @@ JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
     "refresh",
     "puts",
     "box",
+    "window",
     NULL
   };
 
   enum {
     OPT_REFRESH,
     OPT_PUTS,
-    OPT_BOX
+    OPT_BOX,
+    OPT_WINDOW
   };
 
   // figure out which method was called, and pass through the error
@@ -49,12 +54,38 @@ JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
 
     waddstr(win, Jim_String(argv[1]));
     wrefresh(win);
+    refresh();
     Jim_SetResult(interp, argv[1]);
     break;
 
   case OPT_BOX:
-    // TODO: parse arguments and send interesting things to box()
-    box(win, 0, 0);
+    wborder(win, '|', '|', '-', '-', '+', '+', '+', '+');
+    break;
+
+  case OPT_WINDOW:
+    if (argc < 5) {
+      Jim_WrongNumArgs(interp, argc, argv, "height width row column");
+      return JIM_ERR;
+    }
+
+    // grab the long values of the passed-in dimensions,
+    // and give an error if they're malformed
+    long dimensions[4];
+    int i;
+    for (i = 1; i < argc; i++) {
+      // awkward offset because argv[0] is the command name
+      if(Jim_GetLong(interp, argv[i], dimensions + i - 1) != JIM_OK) {
+        Jim_SetResultFormatted(interp,
+          "expected an integer but got \"%#s\"", argv[i]
+        );
+        return JIM_ERR;
+      }
+    }
+
+    WINDOW *sub = subwin(win,
+      dimensions[0], dimensions[1], dimensions[2], dimensions[3]
+    );
+    Jim_SetResult(interp, JimNCurses_CreateWindow(interp, sub, NULL));
     break;
   }
 
@@ -86,23 +117,8 @@ JimNCurses_CreateWindow(Jim_Interp *interp, WINDOW *win, char *win_name) {
 }
 
 /***
- * core ncurses commands
+ * native core ncurses commands
  */
-
-// ncurses.window
-static int
-JimNCursesCommand_window(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
-  if (argc < 5) {
-    Jim_WrongNumArgs(interp, argc, argv, "height width row column");
-    return JIM_ERR;
-  }
-
-  WINDOW *win = newwin(10, 10, 0, 0);
-
-  Jim_SetResult(interp, JimNCurses_CreateWindow(interp, win, NULL));
-  return JIM_OK;
-}
-
 // ncurses.init
 static int
 JimNCursesCommand_init(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
@@ -145,8 +161,6 @@ Jim_ncursesInit(Jim_Interp *interp) {
     return JIM_ERR;
   }
 
-
-  Jim_CreateCommand(interp, "ncurses.window", JimNCursesCommand_window, NULL, NULL);
   Jim_CreateCommand(interp, "ncurses.init", JimNCursesCommand_init, NULL, NULL);
   Jim_CreateCommand(interp, "ncurses.end", JimNCursesCommand_end, NULL, NULL);
   Jim_CreateCommand(interp, "ncurses.refresh", JimNCursesCommand_refresh, NULL, NULL);

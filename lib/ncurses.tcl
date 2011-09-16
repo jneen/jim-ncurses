@@ -10,3 +10,7 @@ proc ncurses.do {script} {
 		ncurses.end
 	}
 }
+
+proc ncurses.window {args} {
+	ncurses.stdscr window {*}$args
+}
