@@ -38,3 +38,5 @@ test ncurses-1.5 "an out-of-bounds window" {
 
   string match "*out of range*" $e
 } 1
+
+testreport
