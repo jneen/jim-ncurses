@@ -9,11 +9,14 @@ test ncurses-1.1 "Uninitialized" {
 } 0
 
 test ncurses-1.2 "Initialized" {
-  ncurses.init
-  set initialized [ncurses.isInitialized]
-  ncurses.end
+  try {
+    ncurses.init
+    set initialized [ncurses.isInitialized]
+  } finally {
+    ncurses.end
+  }
 
-  return $initialized
+  set initialized
 } 1
 
 test ncurses-1.3 "Initialized with ncurses.do" {
