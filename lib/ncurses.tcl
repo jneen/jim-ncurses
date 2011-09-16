@@ -5,7 +5,7 @@ proc ncurses.do {script} {
   ncurses.init
 
   try {
-    uplevel 1 [list eval $script]
+    uplevel 1 $script
   } finally {
     ncurses.end
   }
