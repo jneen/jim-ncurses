@@ -27,5 +27,14 @@ test ncurses-1.4 "a window!" {
   ncurses.do {
     set win [stdscr window 10 10 0 0]
   }
-  return 0
-} 0
+} "ncurses.window<1>"
+
+test ncurses-1.5 "an out-of-bounds window" {
+  catch {
+    ncurses.do {
+      stdscr window 1000 1000 0 0
+    }
+  } e
+
+  string match "*out of range*" $e
+} 1
