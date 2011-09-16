@@ -1,7 +1,7 @@
 #include <ncursesw/curses.h>
 #include <jim.h>
 
-Jim_Obj *
+char *
 JimNCurses_CreateWindow(Jim_Interp *interp, WINDOW *win, char *win_name);
 
 static int
@@ -40,6 +40,11 @@ JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
 
   // import the window from the command's private data
   WINDOW *win = Jim_CmdPrivData(interp);
+
+  if (win == NULL) {
+    Jim_SetResultString(interp, "The window is null for some reason.", -1);
+    return JIM_ERR;
+  }
 
   switch(option) {
   case OPT_REFRESH:
@@ -85,24 +90,37 @@ JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
     WINDOW *sub = subwin(win,
       dimensions[0], dimensions[1], dimensions[2], dimensions[3]
     );
-    Jim_SetResult(interp, JimNCurses_CreateWindow(interp, sub, NULL));
+
+    if (sub == NULL) {
+      Jim_SetResultString(interp,
+        "failed to create window - possibly dimensions out of range?", -1
+      );
+      return JIM_ERR;
+    }
+
+    char *win_name = JimNCurses_CreateWindow(interp, sub, NULL);
+    Jim_SetResult(interp, Jim_NewStringObjNoAlloc(interp, win_name, -1));
     break;
   }
 
-	return JIM_OK;
+  return JIM_OK;
 }
 
 static void
 JimNCurses_DestroyWindow(Jim_Interp *interp, void *privData) {
-	// TODO
+  // TODO
 }
 
-Jim_Obj *
+char *
 JimNCurses_CreateWindow(Jim_Interp *interp, WINDOW *win, char *win_name) {
-  char name[60];
+  char *name = malloc(60);
+
   if (win_name == NULL) {
     win_name = name;
-    snprintf(win_name, sizeof(win_name), "ncurses.window<%ld>", Jim_GetId(interp));
+    snprintf(win_name, 60, "ncurses.window<%ld>", Jim_GetId(interp));
+  }
+  else {
+    free(name);
   }
 
   Jim_CreateCommand(
@@ -113,7 +131,7 @@ JimNCurses_CreateWindow(Jim_Interp *interp, WINDOW *win, char *win_name) {
     JimNCurses_DestroyWindow // destructor
   );
 
-  return Jim_NewStringObj(interp, win_name, -1);
+  return win_name;
 }
 
 /***
@@ -130,6 +148,14 @@ JimNCursesCommand_init(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
   return JIM_OK;
 }
 
+// ncurses.isInitialized
+static int
+JimNCursesCommand_isInitialized(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
+  // we're in ncurses mode iff stdscr actually exists.
+  Jim_SetResultBool(interp, stdscr != NULL);
+  return JIM_OK;
+}
+
 // ncurses.refresh
 static int
 JimNCursesCommand_refresh(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
@@ -141,6 +167,8 @@ JimNCursesCommand_refresh(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
 static int
 JimNCursesCommand_end(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
   endwin();
+
+  Jim_DeleteCommand(interp, "ncurses.stdscr");
   return JIM_OK;
 }
 
@@ -156,15 +184,16 @@ JimNCursesCommand_getc(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
  * package initializer, run by Jim at load time
  */
 int
-Jim_ncursesInit(Jim_Interp *interp) {
+Jim_ncurses_extInit(Jim_Interp *interp) {
   if (Jim_PackageProvide(interp, "ncurses", "0.1", JIM_ERRMSG)) {
     return JIM_ERR;
   }
 
   Jim_CreateCommand(interp, "ncurses.init", JimNCursesCommand_init, NULL, NULL);
+  Jim_CreateCommand(interp, "ncurses.isInitialized", JimNCursesCommand_isInitialized, NULL, NULL);
   Jim_CreateCommand(interp, "ncurses.end", JimNCursesCommand_end, NULL, NULL);
   Jim_CreateCommand(interp, "ncurses.refresh", JimNCursesCommand_refresh, NULL, NULL);
   Jim_CreateCommand(interp, "ncurses.getc", JimNCursesCommand_getc, NULL, NULL);
 
-	return JIM_OK;
+  return JIM_OK;
 }

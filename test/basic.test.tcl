@@ -1,12 +1,28 @@
 lappend auto_path "./lib"
+package require ncurses
 
-# package require ncurses
-source "./lib/ncurses.tcl"
+# bah!  the test proc needs to be in stdlib, guys
+source [file dirname [info script]]/../deps/jimtcl/tests/testing.tcl
 
-ncurses.do {
-	set win [ncurses.window 10 10 20 20]
+test ncurses-1.1 "Uninitialized" {
+  ncurses.isInitialized
+} 0
 
-	$win box
-	$win puts "puts with ncurses\n"
-	ncurses.getc
-}
+test ncurses-1.2 "Initialized" {
+  ncurses.init
+  set initialized [ncurses.isInitialized]
+  ncurses.end
+
+  return $initialized
+} 1
+
+test ncurses-1.3 "Initialized with ncurses.do" {
+  ncurses.do { ncurses.isInitialized }
+} 1
+
+test ncurses-1.4 "a window!" {
+  ncurses.do {
+    set win [stdscr window 10 10 0 0]
+  }
+  return 0
+} 0

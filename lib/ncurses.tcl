@@ -1,16 +1,20 @@
 # load up the shared lib
-load "[file dirname [info script]]/ncurses.so"
+load "[file dirname [info script]]/ncurses_ext.so"
 
 proc ncurses.do {script} {
-	ncurses.init
+  ncurses.init
 
-	try {
-		uplevel 1 [list eval $script]
-	} finally {
-		ncurses.end
-	}
+  try {
+    uplevel 1 [list eval $script]
+  } finally {
+    ncurses.end
+  }
 }
 
-proc ncurses.window {args} {
-	ncurses.stdscr window {*}$args
+proc stdscr {args} {
+  if {[ncurses.isInitialized]} {
+    ncurses.stdscr {*}$args
+  } else {
+    return -code error "stdscr is uninitialized.  Try running your code in `ncurses.do {...}`"
+  }
 }

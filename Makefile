@@ -5,7 +5,7 @@ LDLIBS += -L./deps/jimtcl -I./deps/jimtcl -ljim
 
 JIM = deps/jimtcl/jim.o
 JIMSRC = deps/jimtcl/*.c deps/jimtcl/*.h
-OBJ = lib/ncurses.so
+OBJ = lib/ncurses_ext.so
 SRC = src/jim-ncurses.c
 
 $(OBJ): $(JIM) $(SRC)
