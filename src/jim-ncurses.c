@@ -107,6 +107,10 @@ JimNCursesCommand_window(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
 static int
 JimNCursesCommand_init(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
   initscr();
+  cbreak();
+
+  JimNCurses_CreateWindow(interp, stdscr, "ncurses.stdscr");
+
   return JIM_OK;
 }
 
@@ -141,7 +145,6 @@ Jim_ncursesInit(Jim_Interp *interp) {
     return JIM_ERR;
   }
 
-  JimNCurses_CreateWindow(interp, stdscr, "ncurses.stdscr");
 
   Jim_CreateCommand(interp, "ncurses.window", JimNCursesCommand_window, NULL, NULL);
   Jim_CreateCommand(interp, "ncurses.init", JimNCursesCommand_init, NULL, NULL);
