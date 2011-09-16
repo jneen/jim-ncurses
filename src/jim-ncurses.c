@@ -106,9 +106,13 @@ JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
   return JIM_OK;
 }
 
+/***
+ * called by Jim when a window is destroyed
+ */
 static void
 JimNCurses_DestroyWindow(Jim_Interp *interp, void *privData) {
-  // TODO
+  WINDOW *win = Jim_CmdPrivData(interp);
+  delwin(win);
 }
 
 char *
