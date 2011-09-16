@@ -7,6 +7,8 @@ JIM = deps/jimtcl/jim.o
 JIMSRC = deps/jimtcl/*.c deps/jimtcl/*.h
 OBJ = lib/ncurses_ext.so
 SRC = src/jim-ncurses.c
+JIMSH = ./deps/jimtcl/jimsh
+TESTS = ./test/basic.test.tcl
 
 $(OBJ): $(JIM) $(SRC)
 	$(CC) $(LDLIBS) $(SH_FLAGS) $(CFLAGS) -o $(OBJ) $(SRC)
@@ -21,5 +23,14 @@ all: $(OBJ)
 clean:
 	rm $(OBJ)
 
+.PHONY: test
 test: all
-	./deps/jimtcl/jimsh ./test/basic.test.tcl
+	$(JIMSH) $(TESTS)
+
+.PHONY: debug
+debug: all
+	gdb --args $(JIMSH) $(TESTS)
+
+.PHONY: grind
+grind: all
+	valgrind --leak-check=full $(JIMSH) $(TESTS)
