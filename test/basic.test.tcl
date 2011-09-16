@@ -26,7 +26,12 @@ test ncurses-1.3 "Initialized with ncurses.do" {
 test ncurses-1.4 "a window!" {
   ncurses.do {
     set win [stdscr window 10 10 0 0]
+    $win box
+    $win puts "This should be a box"
+    ncurses.getc
   }
+
+  set win
 } "ncurses.window<1>"
 
 test ncurses-1.5 "an out-of-bounds window" {
