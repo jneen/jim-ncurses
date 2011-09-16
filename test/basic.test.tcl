@@ -4,14 +4,9 @@ lappend auto_path "./lib"
 source "./lib/ncurses.tcl"
 
 ncurses.do {
-	#puts "######### calling ncurses.window..."
-	set win [ncurses.window 0 0 1 2]
-	#puts "######### return value:"
-	#puts $win
+	set win [ncurses.window 10 10 20 20]
 
-	#puts "######### calling ($win puts)"
-	$win puts "puts with ncurses"
 	$win box
-	$win refresh
+	$win puts "puts with ncurses\n"
 	ncurses.getc
 }
