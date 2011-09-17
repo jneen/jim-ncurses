@@ -1,9 +1,52 @@
+#include <string.h>
 #include <ncursesw/curses.h>
 #include <jim.h>
 
-char *
-JimNCurses_CreateWindow(Jim_Interp *interp, WINDOW *win, char *win_name);
+/************ prototypes ************/
 
+// window command handler
+static int
+JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
+
+// static commands
+static int
+JimNCursesCommand_init(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
+static int
+JimNCursesCommand_isInitialized(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
+static int
+JimNCursesCommand_end(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
+static int
+JimNCursesCommand_refresh(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
+static int
+JimNCursesCommand_getc(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
+
+// helpers
+static void
+JimNCurses_DestroyWindow(Jim_Interp *interp, void *privData);
+static void
+JimNCurses_CreateWindow(Jim_Interp *interp, WINDOW *win, char *win_name);
+static void
+JimNCurses_WindowId(Jim_Interp *interp, char *win_name, size_t len);
+
+/**
+ * package initializer, run by Jim at load time
+ */
+int
+Jim_ncurses_extInit(Jim_Interp *interp) {
+  if (Jim_PackageProvide(interp, "ncurses", "0.1", JIM_ERRMSG)) {
+    return JIM_ERR;
+  }
+
+  Jim_CreateCommand(interp, "ncurses.init", JimNCursesCommand_init, NULL, NULL);
+  Jim_CreateCommand(interp, "ncurses.isInitialized", JimNCursesCommand_isInitialized, NULL, NULL);
+  Jim_CreateCommand(interp, "ncurses.end", JimNCursesCommand_end, NULL, NULL);
+  Jim_CreateCommand(interp, "ncurses.refresh", JimNCursesCommand_refresh, NULL, NULL);
+  Jim_CreateCommand(interp, "ncurses.getc", JimNCursesCommand_getc, NULL, NULL);
+
+  return JIM_OK;
+}
+
+/**** implementations ****/
 static int
 JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
   // return an error if no method is specified
@@ -180,23 +223,5 @@ static int
 JimNCursesCommand_getc(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
   char ch = getch();
   Jim_SetResultString(interp, &ch, 1);
-  return JIM_OK;
-}
-
-/**
- * package initializer, run by Jim at load time
- */
-int
-Jim_ncurses_extInit(Jim_Interp *interp) {
-  if (Jim_PackageProvide(interp, "ncurses", "0.1", JIM_ERRMSG)) {
-    return JIM_ERR;
-  }
-
-  Jim_CreateCommand(interp, "ncurses.init", JimNCursesCommand_init, NULL, NULL);
-  Jim_CreateCommand(interp, "ncurses.isInitialized", JimNCursesCommand_isInitialized, NULL, NULL);
-  Jim_CreateCommand(interp, "ncurses.end", JimNCursesCommand_end, NULL, NULL);
-  Jim_CreateCommand(interp, "ncurses.refresh", JimNCursesCommand_refresh, NULL, NULL);
-  Jim_CreateCommand(interp, "ncurses.getc", JimNCursesCommand_getc, NULL, NULL);
-
   return JIM_OK;
 }
