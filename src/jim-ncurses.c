@@ -98,12 +98,23 @@ JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
       return JIM_ERR;
     }
 
-    char *win_name = JimNCurses_CreateWindow(interp, sub, NULL);
-    Jim_SetResult(interp, Jim_NewStringObjNoAlloc(interp, win_name, -1));
+    // make a window name token, and create the window proc
+    char win_name[60];
+    JimNCurses_WindowId(interp, win_name, 60);
+    JimNCurses_CreateWindow(interp, sub, win_name);
+
+    Jim_SetResultString(interp, win_name, -1);
     break;
   }
 
   return JIM_OK;
+}
+
+static void
+JimNCurses_WindowId(Jim_Interp *interp, char *win_name, size_t len) {
+  if (len == -1) len = strlen(win_name);
+
+  snprintf(win_name, len, "ncurses.window<%ld>", Jim_GetId(interp));
 }
 
 /***
@@ -115,18 +126,8 @@ JimNCurses_DestroyWindow(Jim_Interp *interp, void *privData) {
   delwin(win);
 }
 
-char *
+static void
 JimNCurses_CreateWindow(Jim_Interp *interp, WINDOW *win, char *win_name) {
-  char *name = malloc(60);
-
-  if (win_name == NULL) {
-    win_name = name;
-    snprintf(win_name, 60, "ncurses.window<%ld>", Jim_GetId(interp));
-  }
-  else {
-    free(name);
-  }
-
   Jim_CreateCommand(
     interp,
     win_name, // the command name
@@ -134,8 +135,6 @@ JimNCurses_CreateWindow(Jim_Interp *interp, WINDOW *win, char *win_name) {
     win, // command's private data
     JimNCurses_DestroyWindow // destructor
   );
-
-  return win_name;
 }
 
 /***
