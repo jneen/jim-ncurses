@@ -46,7 +46,12 @@ Jim_ncurses_extInit(Jim_Interp *interp) {
   return JIM_OK;
 }
 
-/**** implementations ****/
+/*****
+ * This is the command that's called on a window object.
+ *
+ * % set win [stdscr window 10 10 0 0]
+ * % $win <method> <args>
+ */
 static int
 JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
   // return an error if no method is specified
@@ -90,10 +95,12 @@ JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
   }
 
   switch(option) {
+  // refreshes the window
   case OPT_REFRESH:
     wrefresh(win);
     break;
 
+  // outputs text to the window (without a newline!)
   case OPT_PUTS:
     if (argc < 2) {
       Jim_WrongNumArgs(interp, argc, argv, "puts string");
@@ -106,10 +113,12 @@ JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
     Jim_SetResult(interp, argv[1]);
     break;
 
+  // draws a box around the window
   case OPT_BOX:
     wborder(win, '|', '|', '-', '-', '+', '+', '+', '+');
     break;
 
+  // creates a new subwindow
   case OPT_WINDOW:
     if (argc < 5) {
       Jim_WrongNumArgs(interp, argc, argv, "height width row column");
@@ -150,9 +159,13 @@ JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
     break;
   }
 
+  // since we caught the undefined method case above, we know we're ok here
   return JIM_OK;
 }
 
+/****
+ * prints a unique window name into the given char *.
+ */
 static void
 JimNCurses_WindowId(Jim_Interp *interp, char *win_name, size_t len) {
   if (len == -1) len = strlen(win_name);
@@ -169,6 +182,9 @@ JimNCurses_DestroyWindow(Jim_Interp *interp, void *privData) {
   delwin(win);
 }
 
+/***
+ * create a window command, given a window and a name
+ */
 static void
 JimNCurses_CreateWindow(Jim_Interp *interp, WINDOW *win, char *win_name) {
   Jim_CreateCommand(
@@ -184,6 +200,7 @@ JimNCurses_CreateWindow(Jim_Interp *interp, WINDOW *win, char *win_name) {
  * native core ncurses commands
  */
 // ncurses.init
+// begins ncurses mode, and creates stdscr
 static int
 JimNCursesCommand_init(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
   initscr();
@@ -195,6 +212,7 @@ JimNCursesCommand_init(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
 }
 
 // ncurses.isInitialized
+// test if the terminal is in ncurses mode
 static int
 JimNCursesCommand_isInitialized(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
   // we're in ncurses mode iff stdscr actually exists.
@@ -202,14 +220,10 @@ JimNCursesCommand_isInitialized(Jim_Interp *interp, int argc, Jim_Obj *const *ar
   return JIM_OK;
 }
 
-// ncurses.refresh
-static int
-JimNCursesCommand_refresh(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
-  refresh();
-  return JIM_OK;
-}
-
 // ncurses.end
+// ends ncurses mode.  Be sure to call this before the program ends!
+// Much better is to use `ncurses.do {script}`, which handles all the
+// setup and teardown transparently.
 static int
 JimNCursesCommand_end(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
   endwin();
@@ -218,7 +232,16 @@ JimNCursesCommand_end(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
   return JIM_OK;
 }
 
+// ncurses.refresh
+// force a refresh
+static int
+JimNCursesCommand_refresh(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
+  refresh();
+  return JIM_OK;
+}
+
 // ncurses.getc
+// gets a character
 static int
 JimNCursesCommand_getc(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
   char ch = getch();
