@@ -63,7 +63,7 @@ JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
   int option;
   static const char * const options[] = {
     "refresh",
-    "puts",
+    "mvaddstr",
     "box",
     "window",
     NULL
@@ -71,7 +71,7 @@ JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
 
   enum {
     OPT_REFRESH,
-    OPT_PUTS,
+    OPT_MVADDSTR,
     OPT_BOX,
     OPT_WINDOW
   };
@@ -101,13 +101,16 @@ JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
     break;
 
   // outputs text to the window (without a newline!)
-  case OPT_PUTS:
-    if (argc < 2) {
-      Jim_WrongNumArgs(interp, argc, argv, "puts string");
-      return JIM_ERR;
+  case OPT_MVADDSTR:
+    if (argc != 3) {
+      Jim_WrongNumArgs(interp, argc, argv, "mvaddstr row col string");
     }
 
-    waddstr(win, Jim_String(argv[1]));
+    long row = 0, col = 0;
+    Jim_GetLong(interp, argv[1], &row);
+    Jim_GetLong(interp, argv[2], &col);
+
+    mvwaddstr(win, row, col, Jim_String(argv[3]));
     wrefresh(win);
     refresh();
     Jim_SetResult(interp, argv[1]);
