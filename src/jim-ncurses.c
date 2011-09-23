@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <string.h>
 #include <ncursesw/curses.h>
 #include <jim.h>
@@ -7,6 +8,8 @@
 // window command handler
 static int
 JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
+static int
+JimNCursesCallCustomMethod(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
 
 // static commands
 static int
@@ -51,6 +54,12 @@ Jim_ncurses_extInit(Jim_Interp *interp) {
  *
  * % set win [stdscr window 10 10 0 0]
  * % $win <method> <args>
+ *
+ * if it's not in the command table here, it's delegated to
+ *
+ * ncurses.window::<method>
+ *
+ * and the window is sent in as the first argument.
  */
 static int
 JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
@@ -76,11 +85,10 @@ JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
     OPT_WINDOW
   };
 
-  // figure out which method was called, and pass through the error
-  if (
-    Jim_GetEnum(interp, argv[1], options, &option, "NCurses method", JIM_ERRMSG) != JIM_OK
-  ) {
-    return JIM_ERR;
+  // figure out which method was called, and call the custom method if it's
+  // not defined here.
+  if (Jim_GetEnum(interp, argv[1], options, &option, "NCurses method", 0) != JIM_OK) {
+    return JimNCursesCallCustomMethod(interp, argc, argv);
   }
 
   // shift the arguments to the method context
@@ -107,8 +115,14 @@ JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
     }
 
     long row = 0, col = 0;
-    Jim_GetLong(interp, argv[1], &row);
-    Jim_GetLong(interp, argv[2], &col);
+    if (Jim_GetLong(interp, argv[1], &row) != JIM_OK) {
+      Jim_SetResultFormatted(interp, "expected number for row, got \"%#s\"", argv[1]);
+      return JIM_ERR;
+    }
+    if (Jim_GetLong(interp, argv[2], &col) != JIM_OK) {
+      Jim_SetResultFormatted(interp, "expected number for col, got \"%#s\"", argv[2]);
+      return JIM_ERR;
+    }
 
     mvwaddstr(win, row, col, Jim_String(argv[3]));
     wrefresh(win);
@@ -164,6 +178,41 @@ JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
 
   // since we caught the undefined method case above, we know we're ok here
   return JIM_OK;
+}
+
+/******
+ * a helper to _handler which allows custom methods to be called.  It transforms
+ *
+ *    $window method arg1 arg2
+ *
+ * into
+ *
+ *    ncurses.window::method $window arg1 arg2
+ *
+ */
+static int
+JimNCursesCallCustomMethod(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
+  assert(argc > 0);
+
+  // construct the method name, which is "ncurses.window::$method"
+  Jim_Obj *cmdName = Jim_NewStringObj(interp, "ncurses.window::", -1);
+  Jim_AppendObj(interp, cmdName, argv[1]);
+
+  // build the new command vector
+  //
+  // ncurses.window::method $window    arg1 arg2 ...
+  // $cmdName $argv(0) $argv(2) $argv(3) ...
+  Jim_Obj **newargv = Jim_Alloc(argc * sizeof(Jim_Obj *));
+  newargv[0] = cmdName;
+  newargv[1] = argv[0];
+  memcpy(newargv + 2, argv + 2, (argc - 2) * sizeof(Jim_Obj *));
+
+  // call the command with the appropriate args list
+  int retCode = Jim_EvalObjVector(interp, argc, newargv);
+
+  Jim_Free(newargv);
+
+  return retCode;
 }
 
 /****

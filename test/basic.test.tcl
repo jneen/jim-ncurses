@@ -25,9 +25,9 @@ test ncurses-1.3 "Initialized with ncurses.do" {
 
 test ncurses-1.4 "a window!" {
   ncurses.do {
-    set win [stdscr window 10 10 10 10]
+    set win [stdscr window 20 20 20 20]
     $win box
-    $win mvaddstr 1 1 "This should be a box"
+    $win puts {3 3} "This should be a box"
     ncurses.getc
   }
 

@@ -13,6 +13,13 @@ proc ncurses.do {script} {
   }
 }
 
+proc ncurses.window::puts {window {coords {0 0}} str} {
+  set row [lindex $coords 0]
+  set col [lindex $coords 1]
+
+  $window mvaddstr $row $col $str
+}
+
 ###
 # a facade for ncurses.stdscr, which raises a proper error if
 # we're not in ncurses mode
