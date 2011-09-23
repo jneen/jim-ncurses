@@ -8,7 +8,7 @@ TESTS = ./test/basic.test.tcl
 
 CFLAGS += -Wall -g
 SH_FLAGS += -fpic -shared
-LDLIBS += -lncursesw
+LDLIBS += -lncurses
 LDLIBS += -L$(JIM_PATH) -I$(JIM_PATH) -ljim
 
 $(OBJ): $(JIM) $(SRC)

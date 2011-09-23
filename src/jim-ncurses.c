@@ -1,6 +1,6 @@
 #include <assert.h>
 #include <string.h>
-#include <ncursesw/curses.h>
+#include <ncurses.h>
 #include <jim.h>
 
 /************ prototypes ************/
