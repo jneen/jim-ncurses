@@ -1,20 +1,21 @@
+JIM_PATH ?= ./deps/jimtcl
+JIM = $(JIM_PATH)/jim.o
+JIMSRC = $(JIM_PATH)/*.c $(JIM_PATH)/*.h
+OBJ = lib/ncurses_ext.so
+SRC = src/jim-ncurses.c
+JIMSH = $(JIM_PATH)/jimsh
+TESTS = ./test/basic.test.tcl
+
 CFLAGS += -Wall -g
 SH_FLAGS += -fpic -shared
 LDLIBS += -lncursesw
-LDLIBS += -L./deps/jimtcl -I./deps/jimtcl -ljim
-
-JIM = deps/jimtcl/jim.o
-JIMSRC = deps/jimtcl/*.c deps/jimtcl/*.h
-OBJ = lib/ncurses_ext.so
-SRC = src/jim-ncurses.c
-JIMSH = ./deps/jimtcl/jimsh
-TESTS = ./test/basic.test.tcl
+LDLIBS += -L$(JIM_PATH) -I$(JIM_PATH) -ljim
 
 $(OBJ): $(JIM) $(SRC)
 	$(CC) $(LDLIBS) $(SH_FLAGS) $(CFLAGS) -o $(OBJ) $(SRC)
 
 $(JIM): $(JIMSRC)
-	cd deps/jimtcl && ./configure && make && cd -
+	cd $(JIM_PATH) && ./configure && make && cd -
 
 jim: $(JIM)
 
