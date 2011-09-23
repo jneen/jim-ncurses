@@ -23,16 +23,16 @@ test ncurses-1.3 "Initialized with ncurses.do" {
   ncurses.do { ncurses.isInitialized }
 } 1
 
-test ncurses-1.4 "a window!" {
-  ncurses.do {
-    set win [stdscr window 20 20 20 20]
-    $win box
-    $win puts {3 3} "This should be a box"
-    ncurses.getc
-  }
-
-  set win
-} "ncurses.window<1>"
+# test ncurses-1.4 "a window!" {
+#   ncurses.do {
+#     set win [stdscr window 20 20 20 20]
+#     $win box
+#     $win puts {3 3} "This should be a box"
+#     ncurses.getc
+#   }
+# 
+#   set win
+# } "ncurses.window<1>"
 
 test ncurses-1.5 "an out-of-bounds window" {
   catch {
@@ -43,5 +43,14 @@ test ncurses-1.5 "an out-of-bounds window" {
 
   string match "*out of range*" $e
 } 1
+
+test ncurses-1.6 "getmaxyx" {
+  ncurses.do {
+    set win [stdscr window 3 4 5 6]
+    set result [$win getmaxyx]
+  }
+
+  set result
+} {3 4}
 
 testreport

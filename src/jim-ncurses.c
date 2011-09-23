@@ -75,6 +75,7 @@ JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
     "mvaddstr",
     "box",
     "window",
+    "getmaxyx",
     NULL
   };
 
@@ -82,7 +83,8 @@ JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
     OPT_REFRESH,
     OPT_MVADDSTR,
     OPT_BOX,
-    OPT_WINDOW
+    OPT_WINDOW,
+    OPT_GETMAXYX
   };
 
   // figure out which method was called, and call the custom method if it's
@@ -173,6 +175,23 @@ JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
     JimNCurses_CreateWindow(interp, sub, win_name);
 
     Jim_SetResultString(interp, win_name, -1);
+    break;
+
+  case OPT_GETMAXYX:
+    if (argc > 1) {
+      Jim_WrongNumArgs(interp, 1, argv, "getmaxyx takes no arguments");
+    }
+
+    int x;
+    int y;
+    Jim_Obj *retList;
+
+    getmaxyx(win, x, y);
+    retList = Jim_NewListObj(interp, NULL, 0);
+    Jim_ListAppendElement(interp, retList, Jim_NewIntObj(interp, x));
+    Jim_ListAppendElement(interp, retList, Jim_NewIntObj(interp, y));
+
+    Jim_SetResult(interp, retList);
     break;
   }
 
