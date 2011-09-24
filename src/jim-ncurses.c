@@ -206,6 +206,7 @@ JIM_NCURSES_METHOD(JimNCursesMethod_move) {
 
   wmove(win, row, col);
   wrefresh(win);
+  refresh();
 
   return JIM_OK;
 }
