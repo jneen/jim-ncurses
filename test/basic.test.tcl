@@ -54,13 +54,22 @@ test ncurses-1.6 "getmaxyx" {
 } {3 4}
 
 test ncurses-1.7 "height and width" {
-    ncurses.do {
-        set win [stdscr window 3 4 5 6]
-        $win box
-        set result [list [$win height] [$win width]]
-    }
+  ncurses.do {
+    set win [stdscr window 3 4 5 6]
+    $win box
+    set result [list [$win height] [$win width]]
+  }
 
-    set result
+  set result
 } {3 4}
+
+test ncurses-1.8 "getc" {
+  ncurses.do {
+    foreach x {1 2 3 4} {
+      stdscr puts [list $x 0] "entered: [stdscr getc]\n"
+    }
+    stdscr getc
+  }
+} 0
 
 testreport

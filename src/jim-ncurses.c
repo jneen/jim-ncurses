@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <string.h>
+#include <ctype.h>
 #include <ncurses.h>
 #include <jim.h>
 
@@ -75,6 +76,7 @@ JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
     "mvaddstr",
     "box",
     "window",
+    "getc",
     "getmaxyx",
     NULL
   };
@@ -84,6 +86,7 @@ JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
     OPT_MVADDSTR,
     OPT_BOX,
     OPT_WINDOW,
+    OPT_GETC,
     OPT_GETMAXYX
   };
 
@@ -175,6 +178,38 @@ JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
     JimNCurses_CreateWindow(interp, sub, win_name);
 
     Jim_SetResultString(interp, win_name, -1);
+    break;
+
+  case OPT_GETC:
+    if (argc > 1) {
+      Jim_WrongNumArgs(interp, 1, argv, "getc takes no arguments");
+    }
+
+    int code = getch();
+
+    // if it's a printable character, just return it
+    if (isprint(code) && !isspace(code)) {
+      char ch = (char) code;
+      Jim_SetResultString(interp, &ch, 1);
+    }
+    else {
+      switch(code) {
+      // arrow keys
+      case KEY_UP:    Jim_SetResultString(interp, "<Up>",   -1); break;
+      case KEY_DOWN:  Jim_SetResultString(interp, "<Down>", -1); break;
+      case KEY_LEFT:  Jim_SetResultString(interp, "<Left>", -1); break;
+      case KEY_RIGHT: Jim_SetResultString(interp, "<Right>",-1); break;
+
+      case KEY_BACKSPACE: Jim_SetResultString(interp, "<Backspace>", -1); break;
+
+      // enter key, also '\n'
+      case KEY_ENTER:
+      case 10: Jim_SetResultString(interp, "<Enter>", -1); break;
+
+      default:
+        Jim_SetResultFormatted(interp, "<0x%x>", code);
+      }
+    }
     break;
 
   case OPT_GETMAXYX:
@@ -276,6 +311,7 @@ static int
 JimNCursesCommand_init(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
   initscr();
   cbreak();
+  keypad(stdscr, TRUE);
 
   JimNCurses_CreateWindow(interp, stdscr, "ncurses.stdscr");
 
@@ -315,7 +351,6 @@ JimNCursesCommand_refresh(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
 // gets a character
 static int
 JimNCursesCommand_getc(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
-  char ch = getch();
-  Jim_SetResultString(interp, &ch, 1);
-  return JIM_OK;
+  Jim_SetResultString(interp, "ncurses.getc is deprecated, use stdscr getc instead", -1);
+  return JIM_ERR;
 }
