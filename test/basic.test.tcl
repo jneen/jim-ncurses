@@ -70,6 +70,21 @@ test ncurses-1.8 "getc" {
     }
     stdscr getc
   }
+
+  list 0
+} 0
+
+test ncurses-1.9 "moving the cursor" {
+  ncurses.do {
+    stdscr puts "centered cursor:\n"
+    set width [stdscr width]
+    set height [stdscr height]
+    stdscr puts "height: $height, width: $width"
+    stdscr move [/ $height 2] [/ $width 2]
+    stdscr getc
+  }
+
+  list 0
 } 0
 
 testreport

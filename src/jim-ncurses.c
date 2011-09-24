@@ -4,6 +4,9 @@
 #include <ncurses.h>
 #include <jim.h>
 
+#define JIM_METHOD(name) static int name(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+#define JIM_NCURSES_METHOD(name) static int name(Jim_Interp *interp, WINDOW *win, int argc, Jim_Obj *const *argv)
+
 /************ prototypes ************/
 
 // window command handler
@@ -11,6 +14,15 @@ static int
 JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
 static int
 JimNCursesCallCustomMethod(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
+
+// window methods
+JIM_NCURSES_METHOD(JimNCursesMethod_box);
+JIM_NCURSES_METHOD(JimNCursesMethod_getc);
+JIM_NCURSES_METHOD(JimNCursesMethod_getmaxyx);
+JIM_NCURSES_METHOD(JimNCursesMethod_move);
+JIM_NCURSES_METHOD(JimNCursesMethod_mvaddstr);
+JIM_NCURSES_METHOD(JimNCursesMethod_refresh);
+JIM_NCURSES_METHOD(JimNCursesMethod_window);
 
 // static commands
 static int
@@ -72,22 +84,24 @@ JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
   // the ghetto-fabulous command table
   int option;
   static const char * const options[] = {
-    "refresh",
-    "mvaddstr",
     "box",
-    "window",
     "getc",
     "getmaxyx",
+    "move",
+    "mvaddstr",
+    "refresh",
+    "window",
     NULL
   };
 
   enum {
-    OPT_REFRESH,
-    OPT_MVADDSTR,
     OPT_BOX,
-    OPT_WINDOW,
     OPT_GETC,
-    OPT_GETMAXYX
+    OPT_GETMAXYX,
+    OPT_MOVE,
+    OPT_MVADDSTR,
+    OPT_REFRESH,
+    OPT_WINDOW
   };
 
   // figure out which method was called, and call the custom method if it's
@@ -108,129 +122,160 @@ JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
   }
 
   switch(option) {
-  // refreshes the window
-  case OPT_REFRESH:
-    wrefresh(win);
-    break;
+  case OPT_BOX:      return JimNCursesMethod_box(interp, win, argc, argv);
+  case OPT_GETC:     return JimNCursesMethod_getc(interp, win, argc, argv);
+  case OPT_GETMAXYX: return JimNCursesMethod_getmaxyx(interp, win, argc, argv);
+  case OPT_MOVE:     return JimNCursesMethod_move(interp, win, argc, argv);
+  case OPT_MVADDSTR: return JimNCursesMethod_mvaddstr(interp, win, argc, argv);
+  case OPT_REFRESH:  return JimNCursesMethod_refresh(interp, win, argc, argv);
+  case OPT_WINDOW:   return JimNCursesMethod_window(interp, win, argc, argv);
+  }
 
-  // outputs text to the window (without a newline!)
-  case OPT_MVADDSTR:
-    if (argc != 3) {
-      Jim_WrongNumArgs(interp, argc, argv, "mvaddstr row col string");
+  // since we caught the undefined method case above, we shouldn't get here
+  return JIM_ERR;
+}
+
+JIM_NCURSES_METHOD(JimNCursesMethod_box) {
+  wborder(win, '|', '|', '-', '-', '+', '+', '+', '+');
+  return JIM_OK;
+}
+
+JIM_NCURSES_METHOD(JimNCursesMethod_getc) {
+  if (argc > 1) {
+    Jim_WrongNumArgs(interp, 1, argv, "getc takes no arguments");
+  }
+
+  int code = wgetch(win);
+
+  // if it's a printable character, just return it
+  if (isprint(code) && !isspace(code)) {
+    char ch = (char) code;
+    Jim_SetResultString(interp, &ch, 1);
+  }
+  else {
+    switch(code) {
+    // arrow keys
+    case KEY_UP:    Jim_SetResultString(interp, "<Up>",   -1); break;
+    case KEY_DOWN:  Jim_SetResultString(interp, "<Down>", -1); break;
+    case KEY_LEFT:  Jim_SetResultString(interp, "<Left>", -1); break;
+    case KEY_RIGHT: Jim_SetResultString(interp, "<Right>",-1); break;
+
+    case KEY_BACKSPACE: Jim_SetResultString(interp, "<Backspace>", -1); break;
+
+    // enter key, also '\n'
+    case KEY_ENTER:
+    case 10: Jim_SetResultString(interp, "<Enter>", -1); break;
+
+    default:
+      Jim_SetResultFormatted(interp, "<0x%x>", code);
     }
+  }
 
-    long row = 0, col = 0;
-    if (Jim_GetLong(interp, argv[1], &row) != JIM_OK) {
-      Jim_SetResultFormatted(interp, "expected number for row, got \"%#s\"", argv[1]);
-      return JIM_ERR;
-    }
-    if (Jim_GetLong(interp, argv[2], &col) != JIM_OK) {
-      Jim_SetResultFormatted(interp, "expected number for col, got \"%#s\"", argv[2]);
-      return JIM_ERR;
-    }
+  return JIM_OK;
+}
 
-    mvwaddstr(win, row, col, Jim_String(argv[3]));
-    wrefresh(win);
-    refresh();
-    Jim_SetResult(interp, argv[1]);
-    break;
+JIM_NCURSES_METHOD(JimNCursesMethod_getmaxyx) {
+  if (argc > 1) {
+    Jim_WrongNumArgs(interp, 1, argv, "getmaxyx takes no arguments");
+    return JIM_ERR;
+  }
 
-  // draws a box around the window
-  case OPT_BOX:
-    wborder(win, '|', '|', '-', '-', '+', '+', '+', '+');
-    break;
+  int x;
+  int y;
+  Jim_Obj *retList;
 
-  // creates a new subwindow
-  case OPT_WINDOW:
-    if (argc < 5) {
-      Jim_WrongNumArgs(interp, argc, argv, "height width row column");
-      return JIM_ERR;
-    }
+  getmaxyx(win, x, y);
+  retList = Jim_NewListObj(interp, NULL, 0);
+  Jim_ListAppendElement(interp, retList, Jim_NewIntObj(interp, x));
+  Jim_ListAppendElement(interp, retList, Jim_NewIntObj(interp, y));
 
-    // grab the long values of the passed-in dimensions,
-    // and give an error if they're malformed
-    long dimensions[4];
-    int i;
-    for (i = 1; i < argc; i++) {
-      // awkward offset because argv[0] is the command name
-      if(Jim_GetLong(interp, argv[i], dimensions + i - 1) != JIM_OK) {
-        Jim_SetResultFormatted(interp,
-          "expected an integer but got \"%#s\"", argv[i]
-        );
-        return JIM_ERR;
-      }
-    }
+  Jim_SetResult(interp, retList);
+  return JIM_OK;
+}
 
-    WINDOW *sub = subwin(win,
-      dimensions[0], dimensions[1], dimensions[2], dimensions[3]
-    );
+JIM_NCURSES_METHOD(JimNCursesMethod_move) {
+  if (argc < 3) {
+    Jim_WrongNumArgs(interp, 3, argv, "move row col");
+    return JIM_ERR;
+  }
 
-    if (sub == NULL) {
-      Jim_SetResultString(interp,
-        "failed to create window - possibly dimensions out of range?", -1
+  long row;
+  long col;
+  Jim_GetLong(interp, argv[1], &row);
+  Jim_GetLong(interp, argv[2], &col);
+
+  wmove(win, row, col);
+  wrefresh(win);
+
+  return JIM_OK;
+}
+
+JIM_NCURSES_METHOD(JimNCursesMethod_mvaddstr) {
+  if (argc != 4) {
+    Jim_WrongNumArgs(interp, argc, argv, "mvaddstr row col string");
+    return JIM_ERR;
+  }
+
+  long row = 0, col = 0;
+  if (Jim_GetLong(interp, argv[1], &row) != JIM_OK) {
+    Jim_SetResultFormatted(interp, "expected number for row, got \"%#s\"", argv[1]);
+    return JIM_ERR;
+  }
+  if (Jim_GetLong(interp, argv[2], &col) != JIM_OK) {
+    Jim_SetResultFormatted(interp, "expected number for col, got \"%#s\"", argv[2]);
+    return JIM_ERR;
+  }
+
+  mvwaddstr(win, row, col, Jim_String(argv[3]));
+  wrefresh(win);
+  Jim_SetResult(interp, argv[1]);
+
+  return JIM_OK;
+}
+
+JIM_NCURSES_METHOD(JimNCursesMethod_refresh) {
+  wrefresh(win);
+  return JIM_OK;
+}
+
+JIM_NCURSES_METHOD(JimNCursesMethod_window) {
+  if (argc < 5) {
+    Jim_WrongNumArgs(interp, argc, argv, "height width row column");
+    return JIM_ERR;
+  }
+
+  // grab the long values of the passed-in dimensions,
+  // and give an error if they're malformed
+  long dimensions[4];
+  int i;
+  for (i = 1; i < argc; i++) {
+    // awkward offset because argv[0] is the command name
+    if(Jim_GetLong(interp, argv[i], dimensions + i - 1) != JIM_OK) {
+      Jim_SetResultFormatted(interp,
+        "expected an integer but got \"%#s\"", argv[i]
       );
       return JIM_ERR;
     }
-
-    // make a window name token, and create the window proc
-    char win_name[60];
-    JimNCurses_WindowId(interp, win_name, 60);
-    JimNCurses_CreateWindow(interp, sub, win_name);
-
-    Jim_SetResultString(interp, win_name, -1);
-    break;
-
-  case OPT_GETC:
-    if (argc > 1) {
-      Jim_WrongNumArgs(interp, 1, argv, "getc takes no arguments");
-    }
-
-    int code = getch();
-
-    // if it's a printable character, just return it
-    if (isprint(code) && !isspace(code)) {
-      char ch = (char) code;
-      Jim_SetResultString(interp, &ch, 1);
-    }
-    else {
-      switch(code) {
-      // arrow keys
-      case KEY_UP:    Jim_SetResultString(interp, "<Up>",   -1); break;
-      case KEY_DOWN:  Jim_SetResultString(interp, "<Down>", -1); break;
-      case KEY_LEFT:  Jim_SetResultString(interp, "<Left>", -1); break;
-      case KEY_RIGHT: Jim_SetResultString(interp, "<Right>",-1); break;
-
-      case KEY_BACKSPACE: Jim_SetResultString(interp, "<Backspace>", -1); break;
-
-      // enter key, also '\n'
-      case KEY_ENTER:
-      case 10: Jim_SetResultString(interp, "<Enter>", -1); break;
-
-      default:
-        Jim_SetResultFormatted(interp, "<0x%x>", code);
-      }
-    }
-    break;
-
-  case OPT_GETMAXYX:
-    if (argc > 1) {
-      Jim_WrongNumArgs(interp, 1, argv, "getmaxyx takes no arguments");
-    }
-
-    int x;
-    int y;
-    Jim_Obj *retList;
-
-    getmaxyx(win, x, y);
-    retList = Jim_NewListObj(interp, NULL, 0);
-    Jim_ListAppendElement(interp, retList, Jim_NewIntObj(interp, x));
-    Jim_ListAppendElement(interp, retList, Jim_NewIntObj(interp, y));
-
-    Jim_SetResult(interp, retList);
-    break;
   }
 
-  // since we caught the undefined method case above, we know we're ok here
+  WINDOW *sub = subwin(win,
+    dimensions[0], dimensions[1], dimensions[2], dimensions[3]
+  );
+
+  if (sub == NULL) {
+    Jim_SetResultString(interp,
+      "failed to create window - possibly dimensions out of range?", -1
+    );
+    return JIM_ERR;
+  }
+
+  // make a window name token, and create the window proc
+  char win_name[60];
+  JimNCurses_WindowId(interp, win_name, 60);
+  JimNCurses_CreateWindow(interp, sub, win_name);
+
+  Jim_SetResultString(interp, win_name, -1);
+
   return JIM_OK;
 }
 
