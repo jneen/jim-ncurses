@@ -156,6 +156,12 @@ JIM_NCURSES_METHOD(JimNCursesMethod_getc) {
 
   int code = wgetch(win);
 
+  // HACK: short-circuit
+  if (code == (int) ' ') {
+    Jim_SetResultString(interp, " ", 1);
+    return JIM_OK;
+  }
+
   // if it's a printable character, just return it
   if (isprint(code) && !isspace(code)) {
     char ch = (char) code;
