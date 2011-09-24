@@ -20,6 +20,16 @@ proc ncurses.window::puts {window {coords {0 0}} str} {
   $window mvaddstr $row $col $str
 }
 
+proc ncurses.window::width {window} {
+  set dimensions [$window getmaxyx]
+  lindex $dimensions 1
+}
+
+proc ncurses.window::height {window} {
+  set dimensions [$window getmaxyx]
+  lindex $dimensions 0
+}
+
 ###
 # a facade for ncurses.stdscr, which raises a proper error if
 # we're not in ncurses mode

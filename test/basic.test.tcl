@@ -53,4 +53,14 @@ test ncurses-1.6 "getmaxyx" {
   set result
 } {3 4}
 
+test ncurses-1.7 "height and width" {
+    ncurses.do {
+        set win [stdscr window 3 4 5 6]
+        $win box
+        set result [list [$win height] [$win width]]
+    }
+
+    set result
+} {3 4}
+
 testreport
