@@ -357,6 +357,7 @@ JimNCursesCommand_init(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
   initscr();
   cbreak();
   keypad(stdscr, TRUE);
+  noecho();
 
   JimNCurses_CreateWindow(interp, stdscr, "ncurses.stdscr");
 
