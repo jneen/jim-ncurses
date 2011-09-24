@@ -17,6 +17,7 @@ JimNCursesCallCustomMethod(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
 
 // window methods
 JIM_NCURSES_METHOD(JimNCursesMethod_box);
+JIM_NCURSES_METHOD(JimNCursesMethod_clear);
 JIM_NCURSES_METHOD(JimNCursesMethod_getc);
 JIM_NCURSES_METHOD(JimNCursesMethod_getmaxyx);
 JIM_NCURSES_METHOD(JimNCursesMethod_move);
@@ -85,6 +86,7 @@ JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
   int option;
   static const char * const options[] = {
     "box",
+    "clear",
     "getc",
     "getmaxyx",
     "move",
@@ -96,6 +98,7 @@ JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
 
   enum {
     OPT_BOX,
+    OPT_CLEAR,
     OPT_GETC,
     OPT_GETMAXYX,
     OPT_MOVE,
@@ -122,6 +125,7 @@ JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
   }
 
   switch(option) {
+  case OPT_CLEAR:    return JimNCursesMethod_clear(interp, win, argc, argv);
   case OPT_BOX:      return JimNCursesMethod_box(interp, win, argc, argv);
   case OPT_GETC:     return JimNCursesMethod_getc(interp, win, argc, argv);
   case OPT_GETMAXYX: return JimNCursesMethod_getmaxyx(interp, win, argc, argv);
@@ -138,6 +142,11 @@ JimNCursesCommand_handler(Jim_Interp *interp, int argc, Jim_Obj *const *argv) {
 JIM_NCURSES_METHOD(JimNCursesMethod_box) {
   wborder(win, '|', '|', '-', '-', '+', '+', '+', '+');
   return JIM_OK;
+}
+
+JIM_NCURSES_METHOD(JimNCursesMethod_clear) {
+    wclear(win);
+    return JIM_OK;
 }
 
 JIM_NCURSES_METHOD(JimNCursesMethod_getc) {
